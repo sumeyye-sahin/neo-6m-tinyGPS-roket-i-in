@@ -1,0 +1,60 @@
+#include <TinyGPS.h> // nekapsamlı gps kütüphanesidir.
+TinyGPS gps;
+#include <SoftwareSerial.h>
+SoftwareSerial ss(10, 11); //rx tx
+
+void setup() {
+  Serial.begin(9600);// çoğu kodlarda 9600 değeri veriliyor
+  ss.begin(9600);
+}
+
+void loop() {
+  smartdelay(1000); //gps modülünden alan veriler üzerinde yapılan işölemler için gerekli olan süre örneğin yazdırma işlemleri
+  Serial.println(); //modülden alınan verileri yazdırır
+
+  uint8_t sat = gps.satellites(); //kaç uydu gördüğünü yazdırmak için kullanılan kod
+  Serial.print("sat: "); Serial.println(sat);
+
+  float flat, flon; //lat ve lon enlem ve boylam deerlerini tutması için oluşrulmuş değişkenlerdir
+  unsigned long age; 
+  gps.f_get_position(&flat, &flon, &age);
+  Serial.print("lat: "); Serial.println(flat, 6);
+  Serial.print("lon: "); Serial.println(flon, 6);
+
+  int alt = gps.f_altitude();
+  Serial.print("alt: "); Serial.println(alt);
+
+  int spd = gps.f_speed_kmph(); //spd speed yani hız değerini tutması için oluşturulmuş değişkendir
+  Serial.print("spd: "); Serial.println(spd);
+
+  int crs = gps.f_course();
+  Serial.print("crs: "); Serial.println(crs);
+
+  int year;
+  byte month, day, hour, minute, second, hundredths;
+  unsigned long age2;
+  gps.crack_datetime(&year, &month, &day, &hour, &minute, &second, &hundredths, &age2);
+
+  Serial.print("year: "); Serial.println(year);
+  Serial.print("month: "); Serial.println(month);
+  Serial.print("day: "); Serial.println(day);
+  if(hour>=22){
+   Serial.print("hour: "); Serial.println((hour+3)mod(12)); //türkiyenin dünya saatine göre 3 saat geri kalmasından ötürü +3 eklenmiştir.
+                                                            // dünyta saati merkez olarak ingiltereden geçen 0. meridyeni baz alır.
+  }
+  else{
+   Serial.print("hour: "); Serial.println(hour + 3);
+  }
+
+  Serial.print("minute: "); Serial.println(minute);
+  Serial.print("second: "); Serial.println(second);
+}
+
+
+static void smartdelay(unsigned long ms) {
+  unsigned long start = millis(); //modülden alınan verilerin işlenmsi ve ekrana yazılması için gereklli süreyi sağlar yoksa veriler arka arkaya geldiklerinde okunmaz bir hal alabilir.
+  do {
+    while (ss.available())
+      gps.encode(ss.read());
+  } while (millis() - start < ms);
+}
